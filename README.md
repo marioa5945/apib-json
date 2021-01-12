@@ -17,6 +17,24 @@ yarn global add apib-json
 npm install -g apib-json
 ```
 
+## Usage
+
+### Shell
+
+```sh
+apib-json folderUrl(apib) folderUrl(target)
+```
+
+### Code
+
+```js
+var ApibJson = require('ApibJson');
+
+const apibJson = new ApibJson();
+
+apibJson.run('./apibs/', './apib_json/');
+```
+
 ## License
 
 MIT

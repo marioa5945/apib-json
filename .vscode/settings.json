@@ -1,0 +1,4 @@
+{
+  "prettier.singleQuote": true,
+  "prettier.proseWrap": "preserve"
+}
