@@ -1,6 +1,6 @@
 {
   "name": "apib-json",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Convert Apib-file to json-file",
   "main": "dist/bin.js",
   "scripts": {
