@@ -1,0 +1,97 @@
+FORMAT: 1A
+HOST: https://api.example2.com
+
+# API Title2
+[Markdown](http://daringfireball.net/projects/markdown/syntax) **formatted** description.
+
+## Subtitle
+Also Markdown *formatted*. This also includes automatic "smartypants" formatting -- hooray!
+
+> "A quote from another time and place"
+
+Another paragraph. Code sample:
+
+```http
+Authorization: bearer 5262d64b892e8d4341000001
+```
+
+And some code with no highlighting:
+
+```no-highlight
+Foo bar baz
+```
+
+# Data Structures
+
+## NoteData
++ title: Grocery list (required) - Single line description
++ body: Buy milk - Full description of the note which supports Markdown.
+
+## NoteList (array)
++ (NoteData)
+
+# Group Notes
+Group description (also with *Markdown*)
+
+## Important Info
+Descriptions may also contain sub-headings and **more Markdown**.
+
+## Note List [/notes]
+Note list description
+
++ Even
++ More
++ Markdown
+
+### Get Notes [GET]
+Get a list of notes.
+
++ Response 200 (application/json)
+
+    + Headers
+
+            X-Request-ID: f72fc914
+            X-Response-Time: 4ms
+
+    + Attributes (NoteList)
+
+### Create New Note [POST]
+Create a new note using a title and an optional content body.
+
++ Request with body (application/json)
+
+    + Body
+
+            {
+                "title": "My new note",
+                "body": "This is the body"
+            }
+
++ Response 201
+
++ Response 400 (application/json)
+
+    + Body
+
+            {
+                "error": "Invalid title"
+            }
+
++ Request without body (application/json)
+
+    + Body
+
+            {
+                "title": "My new note"
+            }
+
++ Response 201
+
++ Response 400 (application/json)
+
+    + Body
+
+            {
+                "error": "Invalid title"
+            }
+            

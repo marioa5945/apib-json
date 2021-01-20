@@ -1,0 +1,166 @@
+<section class="<%= type %>">
+  <dl>
+    <dt>
+      <button><%= type %></button>
+      <p><%= url %></p>
+    </dt>
+    <% if (parameters) { %> 
+    <dd>
+      <% for(var i = 0; i < parameters.length; i++){ %>
+      <div>
+        <p>
+          <b><%= parameters[i].key %></b>: 
+          <span><%= parameters[i].value %></span>
+          <em><%= parameters[i].type %></em>
+          <% if (parameters[i].required) { %>
+          <i>*</i>
+          <% } %>
+        </p>
+        <summary>
+          <%= parameters[i].description %>
+        </summary>
+      </div>
+      <% } %>
+    </dd>
+    <% } %>
+  </dl>
+  <aside>
+    <p class="url" >
+      <b><%= type %></b>
+      <span>
+        <%= host %><span><%= url %></span>
+      </span>
+    </p>
+    <% if (list) { %> 
+    <nav>
+      Requests
+      <% for(var i = 0; i < list.length; i++){ %>
+      <button><%= list[i].title %></button>
+      <% } %>
+    </nav>
+    <% } %>
+    <% for(var i = 0; i < list.length; i++){ %>
+    <div>
+      <% if (list[i].headers) { %> 
+      <h3>Headers</h3>
+      <pre>
+        <code>
+        <% for(var j = 0; j < list[i].headers.length; j++){ %>
+        <b><%= list[i].headers[j].key %></b>: <span><%= list[i].headers[j].value %></span>
+        <% } %>
+        </code>
+      </pre>
+      <% } %>
+      <% if (list[i].body) { %> 
+      <h3>Body</h3>
+      <pre>
+        <code>
+        {{each list[i].body value key}}
+         "<b>{{key}}</b>": "<span>{{value}}</span>",
+        {{/each}}
+        </code>
+      </pre>
+      <% } %>
+      <nav>
+        Response
+        <% for(var j = 0; j < list[i].list.length; j++){ %>
+        <button><%= list[i].list[j].code %></button>
+        <% } %>
+      </nav>
+      <% for(var j = 0; j < list[i].list.length; j++){ %>
+      <div>
+        <% if (list[i].list[j].headers) { %> 
+        <h3>Headers</h3>
+        <pre>
+          <code>
+            <% for(var m = 0; m < list[i].list[j].headers.length; m++){ %>
+            <b><%=  list[i].list[j].headers[m].key %></b>: <span><%= list[i].list[j].headers[m].value %></span>
+            <% } %>
+          </code>
+        </pre>
+        <% } %>
+        <% if (list[i].list[j].body) { %>
+        <h3>Body</h3>
+        <pre>
+          <code>
+            <% if (isArray(list[i].list[j].body)) { %>
+            [
+              {
+                {{each list[i].list[j].body[0] value key}}
+                "<b>{{key}}</b>": "<span>{{value}}</span>",
+                {{/each}}
+              }
+            ]
+            <% } else { %>
+            {
+              {{each list[i].list[j].body value key}}
+              "<b>{{key}}</b>": "<span>{{value}}</span>",
+              {{/each}}
+            }
+            <% } %>
+          </code>
+        </pre>
+        <% } %>
+        <% if (list[i].list[j].schema) { %>
+        <h3>Schema</h3>
+        <pre>
+          <code>
+          <% if (isArray(list[i].list[j].schema)) { %>
+            [
+              {
+                "<b>type</b>": "<span><%= list[i].list[j].schema[0].type %></span>",
+                "<b>items</b>": {
+                  "type": "<span><%= list[i].list[j].schema[0].items.type %></span>"
+                  "properties": {
+                    {{each list[i].list[j].schema[0].items.properties value key}}
+                    "<b>{{key}}</b>": {
+                      "<b>type</b>": "<span><%= value.type %></span>",
+                      "<b>description</b>": "<span><%= value.description %></span>"
+                    },
+                    {{/each}}
+                  }
+                }
+              <% if (list[i].list[j].schema[0].items.required) { %>
+                "required": [
+                <% for(var m = 0; m < list[i].list[j].schema[0].items.required.length; m++){ %>
+                  <span><%= list[i].list[j].schema[0].items.required[m] %></span>,
+                <% } %>
+                ]
+              <% } %>
+              <% if (list[i].list[j].schema[0].items.$schema) { %>
+                "<b>$schema</b>": "<span><%= list[i].list[j].schema[0].items.$schema %></span>"
+              <% } %>
+              }
+            ]
+          <% } else { %>
+            {
+              "<b>type</b>": "<span><%= list[i].list[j].schema.type %></span>",
+              "<b>properties</b>": {
+                {{each list[i].list[j].schema.properties value key}}
+                "<b>{{key}}</b>": {
+                  "<b>type</b>": "<span><%= value.type %></span>",
+                  "<b>description</b>": "<span><%= value.description %></span>"
+                },
+                {{/each}}
+              }
+            <% if (list[i].list[j].schema.required) { %>
+              "required": [
+              <% for(var m = 0; m < list[i].list[j].schema.required.length; m++){ %>
+                <span><%= list[i].list[j].schema.required[m] %></span>,
+              <% } %>
+              ]
+            <% } %>
+            <% if (list[i].list[j].schema.$schema) { %>
+              "<b>$schema</b>": "<span><%= list[i].list[j].schema.$schema %></span>"
+            <% } %>
+            }
+          <% } %>
+          </code>
+        </pre>
+        <% } %>
+      </div>
+      <% } %>
+    </div>
+    <% } %>
+  </aside>
+</section>

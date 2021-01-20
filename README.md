@@ -3,6 +3,12 @@
 - convention over configuration
 - concise yet expressive
 
+## API Blueprint Parser
+
+Apib-json is complex builder of [API Blueprint](http://apiblueprint.org). it uses "nodejs + typescript" convert multiple apib files into four json files.
+
+API Blueprint is Web API documentation language. You can find API Blueprint documentation on the [API Blueprint site](http://apiblueprint.org).
+
 ## Installation
 
 ```sh

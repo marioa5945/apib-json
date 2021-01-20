@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import ApibJson from './index';
-const path = require('path');
 import arg = require('arg');
 
 const apibJson = new ApibJson();

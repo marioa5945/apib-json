@@ -2,10 +2,11 @@ import { resolve } from 'path';
 const rimraf = require('rimraf');
 const fs = require('fs');
 import { toHtml } from './toHtml';
+import ApiHandle from './apiHandle';
 
 interface ifsTitleObj {
   title: string;
-  child?: Array<ifsDataObj>;
+  child: Array<ifsDataObj>;
   type?: { name: string; url?: string };
 }
 
@@ -24,8 +25,9 @@ export default class ApibJson {
   private titleList: Array<ifsTitleObj> = [];
   private allData: Array<ifsDataObj> = [];
   private config: Array<ifsConfigObj> = [];
+  private dataStructures: { [key: string]: Array<string> } = {};
 
-  private requestMethod = ['GET', 'POST', 'PUT', 'DELETE'];
+  private requestMethod = ['get', 'post', 'put', 'delete'];
 
   /**
    * The depth of the current title in the object
@@ -40,13 +42,13 @@ export default class ApibJson {
   public run = (apibFolderUrl: string, targetFolderUrl: string) => {
     const folderName = apibFolderUrl.split('/').pop();
     if (folderName) {
-      const folderUrl = resolve(targetFolderUrl, folderName);
+      const folderUrl = resolve('.', targetFolderUrl, folderName);
       rimraf.sync(folderUrl);
       fs.mkdirSync(folderUrl);
 
       // Get apib-file list
       const fileList = fs
-        .readdirSync(apibFolderUrl)
+        .readdirSync(resolve('.', apibFolderUrl))
         .filter((n: string) => n.split('.').pop() === 'apib');
 
       // Data init
@@ -63,12 +65,23 @@ export default class ApibJson {
         });
         this.config.push({ title, info: [] });
         const info = fs.readFileSync(apibFolderUrl + '/' + fileName);
+
+        // set data structures to empty array
+        this.dataStructures[title] = [];
+
         this.convert(info.toString());
       }
 
-      toHtml(this.allData);
+      // create instance of api data handling
+      const apiHandle = new ApiHandle();
+      const apiData: {
+        [key: string]: Array<any>;
+      } = apiHandle.run(this.allData, this.dataStructures);
+
+      toHtml(this.allData, apiData);
 
       // Write to JSON file
+      fs.writeFileSync(folderUrl + '/apiData.json', JSON.stringify(apiData));
       fs.writeFileSync(
         folderUrl + '/config.json',
         JSON.stringify(this.config).replace(/\,\"child\"\:\[\]/g, '')
@@ -92,13 +105,21 @@ export default class ApibJson {
 
     // Whether to start adding content
     let isContentAdd = false;
+    // Whether to start adding data structures
+    let isDS = false;
 
     for (const str of list) {
       const titleListObj = this.titleList[this.titleList.length - 1];
       const listObj = this.allData[this.allData.length - 1];
 
-      // Distinguish between content, title and configuration
-      if (str.slice(0, 1) === '#') {
+      // Distinguish between content, title, configuration, and data structures
+      if (str === '# Data Structures') {
+        isDS = true;
+      } else if (isDS && str.slice(0, 2) != '# ') {
+        const keys = Object.keys(this.dataStructures);
+        this.dataStructures[keys.slice(-1).toString()].push(str);
+      } else if (str.slice(0, 1) === '#') {
+        isDS = false;
         isContentAdd = true;
         this.titleDepth = 0;
         this.titleAdd(titleListObj, listObj, str);
@@ -137,33 +158,39 @@ export default class ApibJson {
   /**
    * Add the string into the last title attribute
    * @param obj
-   * @param title
+   * @param titleStr
    */
   private titleAdd = (
     titleListObj: { [key: string]: any },
     listObj: { [key: string]: any },
-    title: string
+    titleStr: string
   ): void => {
-    const str = title.slice(1);
-    const firstC = title.slice(0, 2);
+    const str = titleStr.slice(1);
+    const firstC = titleStr.slice(0, 2);
     this.titleDepth++;
     if (firstC === '# ') {
       const type = this.typeGet(str);
-      const titleHtml = title
+      const title = titleStr
+        .slice(2)
+        .replace(/\[.+\]/, '')
+        .replace(/ *$/, '');
+      const titleHtml = titleStr
         .slice(2)
         .replace('[', '<span>')
         .replace(']', '</span>');
       titleListObj.child.push({
-        title: titleHtml,
-        child: [],
+        title,
+        titleHtml,
         type,
+        child: [],
       });
 
       listObj.child.push({
-        title: titleHtml,
-        content: [`<h${this.titleDepth}>${titleHtml}</h${this.titleDepth}>`],
-        child: [],
+        title,
+        titleHtml: `<h${this.titleDepth}>${titleHtml}</h${this.titleDepth}>`,
         type,
+        content: [],
+        child: [],
       });
       return;
     } else if (firstC === '##') {
@@ -185,24 +212,20 @@ export default class ApibJson {
    */
   private typeGet = (
     str: string
-  ):
-    | {
-        name: string;
-        url?: string;
-      }
-    | undefined => {
+  ): { name: string; url?: string } | undefined => {
     const regular = /\[(.+?)\]/;
     const arr = regular.exec(str);
     if (arr) {
       const value = arr[1];
-      return this.requestMethod.includes(value)
-        ? { name: value }
+      return this.requestMethod.includes(value.toLowerCase())
+        ? { name: value.toLowerCase() }
         : { name: 'url', url: value };
     }
     return undefined;
   };
 
-  /**Zips for completed conversion
+  /**
+   * Tips for completed conversion
    * @param folderUrl
    */
   private completedTips = (folderUrl: string) => {

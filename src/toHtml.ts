@@ -1,3 +1,6 @@
+import { resolve } from 'path';
+const template = require('art-template');
+
 interface ifsObj {
   title: string;
   content?: Array<string>;
@@ -8,22 +11,80 @@ interface ifsObj {
 /**
  * string convert html
  */
-export const toHtml = (data: Array<ifsObj>) => {
-  list = data;
-  for (const item of list) {
+export const toHtml = (
+  data: Array<ifsObj>,
+  apiData: { [key: string]: Array<any> }
+) => {
+  apiList = apiData;
+
+  for (const item of data) {
+    apiObj = apiList[item.title];
     convert(item);
   }
 };
 
-let list: Array<ifsObj> = [];
+let apiList: { [key: string]: Array<any> } = {};
+let apiObj: { [key: string]: any } = {};
+let url = '';
 
 const convert = (obj: ifsObj) => {
+  let type = '';
+  let apiContent: { [key: string]: any } = {};
+
+  if (obj.type) {
+    // record type
+    type = obj.type.name;
+    // record url
+    if (obj.type.url) {
+      url = obj.type.url;
+    }
+    apiContent = apiObj.find((n: any) => n.url === url);
+    apiContent = apiContent?.content.find((n: any) => n.type === type);
+  }
+
+  apiFormat(obj, url, apiContent);
   if (obj.content) {
     dataFormart(obj.content);
   }
   if (obj.child) {
     for (const n of obj.child) {
       convert(n);
+    }
+  }
+};
+
+/**
+ * api data formart to html
+ * @param obj
+ * @param url
+ * @param apiObj
+ */
+const apiFormat = (
+  obj: ifsObj,
+  url: string,
+  apiObj: { [key: string]: any }
+): void => {
+  if (obj.content) {
+    for (let i = 0; i < obj.content.length; i++) {
+      if (
+        obj.content[i].indexOf('+ Response') !== -1 ||
+        obj.content[i].indexOf('+ Request') !== -1 ||
+        obj.content[i].indexOf('+ Parameters') !== -1
+      ) {
+        obj.content = obj.content.splice(0, i);
+
+        if (apiObj) {
+          template.defaults.imports.isArray = Array.isArray;
+          const arrStr = template(resolve(__dirname, 'tpl.art'), {
+            url,
+            ...apiObj,
+          })
+            .split('\n')
+            .filter((n: string) => n.replace(/ */g, '') !== '');
+          obj.content = [...obj.content, ...arrStr];
+        }
+        return;
+      }
     }
   }
 };
@@ -39,15 +100,13 @@ const dataFormart = (content: Array<string>): void => {
     content[i] = toEm(content[i]);
     content[i] = toPre(content[i]);
     content[i] = toBlockquote(content[i]);
-    content[i] = toDiv(content[i]);
-    content[i] = toCheckbox(content[i]);
+    content[i] = toList(content[i]);
   }
 };
 
 const toLink = (str: string): string => {
   let value = str;
-  const regular = /\[(.+?)\]\((.+?)\)/;
-  const arr = regular.exec(str);
+  const arr = /\[(.+?)\]\((.+?)\)/.exec(str);
   if (arr) {
     value = str.replace(arr[0], `<a href="${arr[2]}">${arr[1]}</a>`);
     value = toLink(value);
@@ -57,8 +116,7 @@ const toLink = (str: string): string => {
 
 const toB = (str: string): string => {
   let value = str;
-  const regular = /\*\*(.+?)\*\*/;
-  const arr = regular.exec(str);
+  const arr = /\*\*(.+?)\*\*/.exec(str);
   if (arr) {
     value = str.replace(arr[0], `<b>${arr[1]}</b>`);
     value = toB(value);
@@ -68,8 +126,7 @@ const toB = (str: string): string => {
 
 const toEm = (str: string): string => {
   let value = str;
-  const regular = /\*(.+?)\*/;
-  const arr = regular.exec(str);
+  const arr = /\*(.+?)\*/.exec(str);
   if (arr) {
     value = str.replace(arr[0], `<em>${arr[1]}</em>`);
     value = toEm(value);
@@ -81,8 +138,7 @@ const toEm = (str: string): string => {
 let singlePre = false;
 const toPre = (str: string): string => {
   let value = str;
-  const regular = /^\`\`\`(.*)/;
-  const arr = regular.exec(str);
+  const arr = /^\`\`\`(.*)/.exec(str);
   if (arr) {
     if (singlePre) {
       value = str.replace(arr[0], '</code></pre>');
@@ -103,24 +159,22 @@ const toBlockquote = (str: string): string => {
   return value;
 };
 
-const toDiv = (str: string): string => {
-  if (str === ':::') {
-    return '</div>';
-  } else {
-    const regular = /^\:\:\: (.*)/;
-    const arr = regular.exec(str);
-    if (arr) {
-      return `<div css="${arr[1]}" >`;
+let listStart = false;
+const toList = (str: string): string => {
+  if (str === '' && listStart) {
+    listStart = false;
+    return '</ol>';
+  }
+
+  const arr = / *\+ (.+)/.exec(str);
+  let value = str;
+  if (arr) {
+    if (listStart) {
+      value = `<li>${arr[1]}</li>`;
     } else {
-      return str;
+      listStart = true;
+      value = `<ol><li>${arr[1]}</li>`;
     }
   }
-};
-
-const toCheckbox = (str: string): string => {
-  return str
-    .replace(/[^\`]\[ \][^\`]/g, '<input type="checkbox">')
-    .replace(/^\[ \]/g, '<input type="checkbox">')
-    .replace(/[^\`]\[x\][^\`]/g, '<input type="checkbox" checked="true">')
-    .replace(/^\[x\]/g, '<input type="checkbox" checked="true">');
+  return value;
 };
